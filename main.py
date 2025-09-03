@@ -62,7 +62,7 @@ def send_images_to_teams(webhook_url, image_urls, post_url, post_title):
         headers = {"Content-Type": "application/json"}
         response = requests.post(webhook_url, headers=headers, json=message)
         
-        if response.status_code == 200:
+        if response.status_code == 202:
             print(f"Teams 전송 성공: {len(image_urls)}개 이미지")
             return True
         else:
