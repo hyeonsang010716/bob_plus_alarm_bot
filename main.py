@@ -36,13 +36,13 @@ def send_images_to_teams(webhook_url, image_urls, post_url, post_title, menu_inf
             })
             
             # 메뉴 항목들 추가
-            menu_text = "\n".join([f"• {item}" for item in menu_info.menu_items])
-            body_content.append({
-                "type": "TextBlock",
-                "text": menu_text,
-                "wrap": True,
-                "spacing": "Small"
-            })
+            for item in menu_info.menu_items:
+                body_content.append({
+                    "type": "TextBlock",
+                    "text": f"• {item}",
+                    "wrap": True,
+                    "spacing": "Small"
+                })
             
             # 맛쟘알 코멘트 추가
             if menu_comment:
