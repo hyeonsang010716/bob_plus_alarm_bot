@@ -1,2 +1,8 @@
 playwright==1.40.0
 requests==2.31.0
+langchain==0.3.8
+langchain-core==0.3.28
+langchain-community==0.3.8
+azure-ai-documentintelligence==1.0.0b4
+pydantic==2.5.3
+langchain-openai==0.2.10

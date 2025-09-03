@@ -2,8 +2,10 @@ from playwright.sync_api import sync_playwright
 import requests
 import os
 from datetime import datetime
+from ocr_menu_extractor import OCRMenuExtractor, MenuExtraction
+from typing import Optional
 
-def send_images_to_teams(webhook_url, image_urls, post_url, post_title):
+def send_images_to_teams(webhook_url, image_urls, post_url, post_title, menu_info: Optional[MenuExtraction] = None, menu_comment: str = ""):
     try:
         if not image_urls:
             print("전송할 이미지가 없습니다.")
@@ -20,12 +22,52 @@ def send_images_to_teams(webhook_url, image_urls, post_url, post_title):
                 "text": f"🍽 {post_title} 🍽",
                 "size": "Large",
                 "weight": "Bolder"
-            },
-            {
-                "type": "Image",
-                "url": first_image
             }
         ]
+        
+        # 메뉴 정보가 있으면 추가
+        if menu_info and menu_info.is_lunch_menu and menu_info.menu_items:
+            body_content.append({
+                "type": "TextBlock",
+                "text": "📋 오늘의 메뉴",
+                "size": "Medium",
+                "weight": "Bolder",
+                "separator": True
+            })
+            
+            # 메뉴 항목들 추가
+            menu_text = "\n".join([f"• {item}" for item in menu_info.menu_items])
+            body_content.append({
+                "type": "TextBlock",
+                "text": menu_text,
+                "wrap": True,
+                "spacing": "Small"
+            })
+            
+            # 맛쟘알 코멘트 추가
+            if menu_comment:
+                body_content.append({
+                    "type": "TextBlock",
+                    "text": f"👨‍🍳 맛잘알의 코멘트",
+                    "size": "Medium",
+                    "weight": "Bolder",
+                    "separator": True,
+                    "spacing": "Medium"
+                })
+                body_content.append({
+                    "type": "TextBlock",
+                    "text": f"\"{menu_comment}\"",
+                    "wrap": True,
+                    "isSubtle": True,
+                    "style": "emphasis",
+                    "spacing": "Small"
+                })
+        
+        # 첫 번째 이미지 추가
+        body_content.append({
+            "type": "Image",
+            "url": first_image
+        })
         
         # 나머지 이미지가 있으면 ImageSet으로 추가
         if other_images:
@@ -151,9 +193,34 @@ def extract_and_send_images():
         
         print(f"총 {len(image_urls)}개의 이미지를 찾았습니다.")
         
+        # OCR을 통한 메뉴 정보 추출 (Azure API 키가 설정된 경우에만)
+        menu_info = None
+        menu_comment = ""
+        if os.environ.get('AZURE_COGNITIVE_API_KEY') and os.environ.get('AZURE_COGNITIVE_API_ENDPOINT'):
+            try:
+                print("\n메뉴 정보 추출 중...")
+                extractor = OCRMenuExtractor()
+                menu_info = extractor.process_multiple_images(image_urls)
+                
+                if menu_info:
+                    print(f"메뉴 {len(menu_info.menu_items)}개 항목 발견")
+                    for item in menu_info.menu_items:
+                        print(f"  - {item}")
+                    
+                    # 메뉴 코멘트 생성
+                    print("\n맛잘알 코멘트 생성 중...")
+                    menu_comment = extractor.generate_menu_comment(menu_info.menu_items)
+                    if menu_comment:
+                        print(f"맛잘알 코멘트: {menu_comment}")
+                else:
+                    print("메뉴판을 찾을 수 없습니다.")
+            except Exception as e:
+                print(f"메뉴 추출 중 오류 발생: {e}")
+                print("메뉴 정보 없이 곈4속 진행합니다.")
+        
         # 모든 이미지를 한 번에 Teams로 전송
         if image_urls:
-            success = send_images_to_teams(webhook_url, image_urls, post_url, post_title)
+            success = send_images_to_teams(webhook_url, image_urls, post_url, post_title, menu_info, menu_comment)
             if success:
                 print(f"\n모든 이미지를 Teams로 전송했습니다.")
             else:
