@@ -1,0 +1,36 @@
+name: Extract and Send Images to Teams
+
+on:
+  schedule:
+    # 매일 한국시간 오전 12시에 실행 (UTC 기준 03:00)
+    - cron: '0 3 * * *'
+  workflow_dispatch:  # 수동 실행도 가능하도록 설정
+
+jobs:
+  extract-and-send:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Install Playwright browsers
+      run: |
+        playwright install chromium
+        playwright install-deps chromium
+    
+    - name: Run image extraction and Teams notification
+      env:
+        TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+      run: |
+        python main.py
