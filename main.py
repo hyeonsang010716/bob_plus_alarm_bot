@@ -3,33 +3,59 @@ import requests
 import os
 from datetime import datetime
 
-def send_image_to_teams(webhook_url, image_url, post_url, post_title, index):
+def send_images_to_teams(webhook_url, image_urls, post_url, post_title):
     try:
-        # 이미지 다운로드
-        response = requests.get(image_url)
-        if response.status_code != 200:
-            print(f"이미지 다운로드 실패: {image_url}")
+        if not image_urls:
+            print("전송할 이미지가 없습니다.")
             return False
         
+        # 첫 번째 이미지와 나머지 이미지 분리
+        first_image = image_urls[0]
+        other_images = image_urls[1:] if len(image_urls) > 1 else []
+        
         # Teams Adaptive Card 메시지 생성
+        body_content = [
+            {
+                "type": "TextBlock",
+                "text": f"🍽 {post_title} 🍽",
+                "size": "Large",
+                "weight": "Bolder"
+            },
+            {
+                "type": "Image",
+                "url": first_image
+            }
+        ]
+        
+        # 나머지 이미지가 있으면 ImageSet으로 추가
+        if other_images:
+            body_content.append({
+                "type": "ImageSet",
+                "imageSize": "Large",
+                "images": [{"type": "Image", "url": url} for url in other_images]
+            })
+        
+        # 게시물 URL 추가
+        body_content.append({
+            "type": "TextBlock",
+            "text": f"[게시물 바로가기]({post_url})",
+            "wrap": True
+        })
+        
         message = {
-            "@type": "MessageCard",
-            "@context": "https://schema.org/extensions",
-            "summary": post_title,
-            "themeColor": "FEE500",
-            "title": post_title,
-            "sections": [{
-                "facts": [{
-                    "name": "게시물 URL",
-                    "value": f"[바로가기]({post_url})"
-                }, {
-                    "name": "업로드 시간",
-                    "value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }],
-                "images": [{
-                    "image": image_url
-                }]
-            }]
+            "type": "message",
+            "attachments": [
+                {
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "contentUrl": None,
+                    "content": {
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        "type": "AdaptiveCard",
+                        "version": "1.2",
+                        "body": body_content
+                    }
+                }
+            ]
         }
         
         # Teams webhook으로 전송
@@ -37,14 +63,14 @@ def send_image_to_teams(webhook_url, image_url, post_url, post_title, index):
         response = requests.post(webhook_url, headers=headers, json=message)
         
         if response.status_code == 200:
-            print(f"이미지 #{index} Teams 전송 성공")
+            print(f"Teams 전송 성공: {len(image_urls)}개 이미지")
             return True
         else:
             print(f"Teams 전송 실패: {response.status_code} - {response.text}")
             return False
             
     except Exception as e:
-        print(f"이미지 전송 중 오류 발생: {e}")
+        print(f"Teams 전송 중 오류 발생: {e}")
         return False
 
 def extract_and_send_images():
@@ -125,18 +151,19 @@ def extract_and_send_images():
         
         print(f"총 {len(image_urls)}개의 이미지를 찾았습니다.")
         
-        # 각 이미지를 Teams로 전송
-        success_count = 0
-        for i, url in enumerate(image_urls):
-            if send_image_to_teams(webhook_url, url, post_url, post_title, i+1):
-                success_count += 1
+        # 모든 이미지를 한 번에 Teams로 전송
+        if image_urls:
+            success = send_images_to_teams(webhook_url, image_urls, post_url, post_title)
+            if success:
+                print(f"\n모든 이미지를 Teams로 전송했습니다.")
+            else:
+                print(f"\nTeams 전송에 실패했습니다.")
+                browser.close()
+                exit(1)
+        else:
+            print("전송할 이미지가 없습니다.")
         
         browser.close()
-        print(f"\n총 {success_count}/{len(image_urls)}개의 이미지를 Teams로 전송했습니다.")
-        
-        # GitHub Actions에서 성공 여부를 확인할 수 있도록 실패 시 exit code 1 반환
-        if success_count == 0 and len(image_urls) > 0:
-            exit(1)
 
 # 실행
 if __name__ == "__main__":
