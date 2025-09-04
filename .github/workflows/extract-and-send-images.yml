@@ -2,8 +2,8 @@ name: Extract and Send Images to Teams
 
 on:
   schedule:
-    # 매일 한국시간 오전 11시에 실행 (UTC 기준 02:00) / 월요일 - 금요일
-    - cron: '0 2 * * 1-5'
+    # 매일 한국시간 오전 10시 30분에 실행 (UTC 기준 01:30) / 월요일 - 금요일
+    - cron: '30 1 * * 1-5'
   workflow_dispatch:  # 수동 실행도 가능하도록 설정
 
 jobs:
