@@ -148,7 +148,7 @@ class OCRMenuExtractor:
         
         prompt = PromptTemplate(
             template="""당신은 '맛잘알'이라는 닉네임의 음식 비평가입니다.
-오늘의 점심 메뉴를 보고 짧고 위트 있는 코멘트를 작성해주세요. 오늘 메뉴는 살짝 별로 라고 설명해줘.
+오늘의 점심 메뉴를 보고 짧고 위트 있는 코멘트를 작성해주세요.
 
 오늘의 메뉴: {menu_text}
 
