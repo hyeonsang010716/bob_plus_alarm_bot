@@ -1,38 +1,40 @@
-name: Push Directly to Naver Cloud SourceCommit
+name: Push to Naver SourceCommit (HTTPS)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # 수동 실행
+  # push:
+  #   branches:
+  #     - main
 
 jobs:
   push-to-ncloud:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Setup SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.NCLOUD_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan devtools.ncloud.com >> ~/.ssh/known_hosts
+    - name: Checkout current repository
+      uses: actions/checkout@v3
 
-    - name: Clone SourceCommit repo
+    # ✅ SourceCommit 저장소를 HTTPS로 clone
+    - name: Clone Naver SourceCommit (HTTPS)
       run: |
-        git clone ssh://zzcaypok.devtools.ncloud.com/3067145/cheapbob-test.git ncloud_repo
+        git clone https://${{ secrets.NCLOUD_ID }}:${{ secrets.NCLOUD_PAT }}@devtools.ncloud.com/3067145/cheapbob-test.git ncloud_repo
         cd ncloud_repo
-        git checkout -B ncloud2   # 브랜치가 없으면 생성
+        git checkout -B ncloud2
 
+    # ✅ 테스트용 파일 생성 또는 README 수정
     - name: Create test file
       run: |
         cd ncloud_repo
         timestamp=$(date +'%Y%m%d-%H%M%S')
-        echo "# Auto file via GitHub Actions" > actions_${timestamp}.md
-        echo "Created at $timestamp" >> actions_${timestamp}.md
+        echo "# Test from GitHub Actions" > test_${timestamp}.md
+        echo "Generated at: $timestamp" >> test_${timestamp}.md
 
-    - name: Commit and push to ncloud2
+    # ✅ 커밋 & 푸시
+    - name: Commit & Push to ncloud2
       run: |
         cd ncloud_repo
         git config --global user.email "actions@ncloud.com"
         git config --global user.name "GitHub Actions Bot"
         git add .
-        git commit -m "feat: add auto md file from actions" || echo "no changes"
-        git push origin ncloud2 --force
+        git commit -m "chore: add test file from GitHub Actions" || echo "nothing to commit"
+        git push https://${{ secrets.NCLOUD_ID }}:${{ secrets.NCLOUD_PAT }}@devtools.ncloud.com/3067145/cheapbob-test.git ncloud2 --force
