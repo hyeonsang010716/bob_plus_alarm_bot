@@ -1,0 +1,38 @@
+name: Push Directly to Naver Cloud SourceCommit
+
+on:
+  workflow_dispatch:
+
+jobs:
+  push-to-ncloud:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.NCLOUD_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan devtools.ncloud.com >> ~/.ssh/known_hosts
+
+    - name: Clone SourceCommit repo
+      run: |
+        git clone ssh://zzcaypok.devtools.ncloud.com/3067145/cheapbob-test.git ncloud_repo
+        cd ncloud_repo
+        git checkout -B ncloud2   # 브랜치가 없으면 생성
+
+    - name: Create test file
+      run: |
+        cd ncloud_repo
+        timestamp=$(date +'%Y%m%d-%H%M%S')
+        echo "# Auto file via GitHub Actions" > actions_${timestamp}.md
+        echo "Created at $timestamp" >> actions_${timestamp}.md
+
+    - name: Commit and push to ncloud2
+      run: |
+        cd ncloud_repo
+        git config --global user.email "actions@ncloud.com"
+        git config --global user.name "GitHub Actions Bot"
+        git add .
+        git commit -m "feat: add auto md file from actions" || echo "no changes"
+        git push origin ncloud2 --force
